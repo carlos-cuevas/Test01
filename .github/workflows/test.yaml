@@ -32,6 +32,7 @@ jobs:
       uses: google-github-actions/auth@v2
       with:
         token_format: 'id_token'
+        id_token_audience: 'sts.googleapis.com'
         workload_identity_provider: projects/${{ github.event.inputs.numbreproject }}/locations/global/workloadIdentityPools/${{ github.event.inputs.pool_id }}/providers/github-provider
         service_account: ${{ github.event.inputs.serviceaccount }}
 
