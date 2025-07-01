@@ -1,0 +1,48 @@
+name: Validar GCP con OIDC y POOL_ID dinámico
+
+on:
+  workflow_dispatch:
+    inputs:
+      pool_id:
+        description: "ID del Workload Identity Pool"
+        required: true
+      project_id:
+        description: "ID del proyecto evaluado"
+        required: true
+      numbreproject:
+        description: "Número de proyecto"
+        required: true
+      serviceaccount:
+        description: "Cuenta de servicio"
+        required: true
+
+jobs:
+  auth-gcp:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout del repositorio
+      uses: actions/checkout@v4
+
+    - name: Autenticarse en GCP con OIDC
+      uses: google-github-actions/auth@v2
+      with:
+        token_format: 'id_token'
+        workload_identity_provider: projects/${{ github.event.inputs.numbreproject }}/locations/global/workloadIdentityPools/${{ github.event.inputs.pool_id }}/providers/github-provider
+        service_account: ${{ github.event.inputs.serviceaccount }}
+
+    - name: Verificar autenticación
+      run: |
+        echo "Inputs recibidos:"
+        echo "Pool ID: ${{ github.event.inputs.pool_id }}"
+        echo "Project ID: ${{ github.event.inputs.project_id }}"
+        echo "Project Number: ${{ github.event.inputs.numbreproject }}"
+        echo "Service Account: ${{ github.event.inputs.serviceaccount }}"
+
+        gcloud auth list
+        gcloud config list project
+        gcloud compute project-info describe --project="${{ github.event.inputs.project_id }}"
