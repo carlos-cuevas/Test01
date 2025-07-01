@@ -9,7 +9,7 @@ on:
       project_id:
         description: "ID del proyecto evaluado"
         required: true
-      numbreproject:
+      project_number:
         description: "Número de proyecto"
         required: true
       serviceaccount:
@@ -33,17 +33,24 @@ jobs:
       with:
         token_format: 'id_token'
         id_token_audience: 'sts.googleapis.com'
-        workload_identity_provider: projects/${{ github.event.inputs.numbreproject }}/locations/global/workloadIdentityPools/${{ github.event.inputs.pool_id }}/providers/github-provider
+        workload_identity_provider: projects/${{ github.event.inputs.project_number }}/locations/global/workloadIdentityPools/${{ github.event.inputs.pool_id }}/providers/github-provider
         service_account: ${{ github.event.inputs.serviceaccount }}
+        create_credentials_file: true
+        export_environment_variables: true
+        universe: googleapis.com
+        cleanup_credentials: true
+        access_token_lifetime: 3600s
+        access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+        id_token_include_email: false
 
     - name: Verificar autenticación
       run: |
         echo "Inputs recibidos:"
         echo "Pool ID: ${{ github.event.inputs.pool_id }}"
         echo "Project ID: ${{ github.event.inputs.project_id }}"
-        echo "Project Number: ${{ github.event.inputs.numbreproject }}"
+        echo "Project Number: ${{ github.event.inputs.project_number }}"
         echo "Service Account: ${{ github.event.inputs.serviceaccount }}"
 
         gcloud auth list
-        gcloud config list project
-        gcloud compute project-info describe --project="${{ github.event.inputs.project_id }}"
+        gcloud config set project "${{ github.event.inputs.project_id }}"
+        gcloud compute project-info describe
