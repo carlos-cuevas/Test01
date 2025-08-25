@@ -39,8 +39,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: scoutsuite-gcp
-          path: |
-            cspm/sci-cloud.html
-            cspm/scoutsuite-results/scoutsuite_errors_sci-cloud.json
-            cspm/scoutsuite_results_sci-cloud.json
+          path: cspm
 
