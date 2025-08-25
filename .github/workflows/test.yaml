@@ -54,3 +54,11 @@ jobs:
         gcloud auth list
         gcloud config set project "${{ github.event.inputs.project_id }}"
         gcloud compute project-info describe
+
+    - name: Ejecutar ScoutSuite (GCP)
+      run: |
+        mkdir -p cspm
+        pip3 install scoutsuite jq
+        scout gcp --project-id infra-odyssey-331604 --report-dir './cspm/' --report-name 'sci-cloud' --result-format json
+        tail ./cspm/scoutsuite-results/scoutsuite_results_sci-cloud.js -n +2 | jq '.' > ./cspm/scoutsuite_results_sci-cloud.json
+      continue-on-error: true
