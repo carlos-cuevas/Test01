@@ -1,4 +1,4 @@
-name: ScoutSuite GCP
+name: ScoutSuite - CloudFox GCP
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 jobs:
   scoutsuite-gcp:
@@ -16,16 +17,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Auth GCP (OIDC)
+        id: gcp-auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/534686086869/locations/global/workloadIdentityPools/testpool-0003/providers/github-provider
           service_account: quickassessment@infra-odyssey-331604.iam.gserviceaccount.com
-          token_format: access_token
           create_credentials_file: true
 
       - name: Ejecutar ScoutSuite (GCP)
         env:
           GCP_PROJECT_ID: infra-odyssey-331604
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
         run: |
           mkdir -p cspm
           pip3 install scoutsuite jq
@@ -35,9 +38,26 @@ jobs:
             > ./cspm/scoutsuite_results_sci-cloud.json
         continue-on-error: true
 
+      - name: Instalar Cloudfox
+        run: |
+          sudo apt-get update -y
+          wget -q --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
+          unzip -q cloudfox-linux-amd64.zip
+          chmod +x cloudfox
+
+      - name: Ejecutar Cloudfox (GCP)
+        env:
+          GCP_PROJECT_ID: infra-odyssey-331604
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          ./cloudfox gcp whoami --project "$GCP_PROJECT_ID"
+          ./cloudfox gcp all-checks --project "$GCP_PROJECT_ID" \
+            --outdir "${{ github.workspace }}/cspm/"
+        continue-on-error: true
+
       - name: Publicar artefactos
         uses: actions/upload-artifact@v4
         with:
           name: scoutsuite-gcp
           path: cspm
-
