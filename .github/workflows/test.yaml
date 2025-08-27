@@ -22,8 +22,9 @@ jobs:
         with:
           workload_identity_provider: projects/534686086869/locations/global/workloadIdentityPools/testpool-0003/providers/github-provider
           service_account: quickassessment@infra-odyssey-331604.iam.gserviceaccount.com
-          token_format: json
+          token_format: access_token
           create_credentials_file: true
+
 
       # 2. Instalar CloudFox
       - name: Instalar Cloudfox
