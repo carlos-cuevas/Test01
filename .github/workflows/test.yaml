@@ -18,6 +18,7 @@ jobs:
 
       # 1. Autenticación OIDC en GCP
       - name: Auth GCP (OIDC)
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/534686086869/locations/global/workloadIdentityPools/testpool-0003/providers/github-provider
@@ -25,21 +26,25 @@ jobs:
           token_format: access_token
           create_credentials_file: true
 
+      # 2. Forzar exportación de ADC para CloudFox
+      - name: Export GOOGLE_APPLICATION_CREDENTIALS
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${{ steps.auth.outputs.credentials_file_path }}" >> $GITHUB_ENV
 
-      # 2. Instalar CloudFox
+      # 3. Instalar CloudFox
       - name: Instalar Cloudfox
         run: |
           sudo apt update
           wget --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
           unzip cloudfox-linux-amd64.zip
 
-      # 3. Ejecutar CloudFox
+      # 4. Ejecutar CloudFox
       - name: Ejecutar Cloudfox (GCP)
         env:
           GCP_PROJECT_ID: infra-odyssey-331604
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           mkdir -p cspm
           cd cloudfox
           chmod +x cloudfox
           ./cloudfox gcp whoami --project $GCP_PROJECT_ID --outdir ${{ github.workspace }}/cspm/
+
