@@ -43,11 +43,23 @@ jobs:
           sudo apt-get update -y
           wget -q --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
           unzip -q cloudfox-linux-amd64.zip
+      - name: Instalar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Crear ADC impersonado
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          gcloud auth application-default set-quota-project infra-odyssey-331604
+          gcloud auth application-default print-access-token > /dev/null
+          gcloud auth application-default print-json > $RUNNER_TEMP/adc.json
+          echo "ADC_JSON_PATH=$RUNNER_TEMP/adc.json" >> $GITHUB_ENV
+
       - name: Ejecutar Cloudfox (GCP)
         env:
-          GCP_PROJECT_ID: infra-odyssey-331604
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          env:
+            GCP_PROJECT_ID: infra-odyssey-331604
+            GOOGLE_APPLICATION_CREDENTIALS: ${{ env.ADC_JSON_PATH }}
         run: |
           cd cloudfox
           chmod +x cloudfox
