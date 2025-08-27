@@ -15,12 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Escribir la key JSON en un archivo temporal
+      # 1. Configurar credenciales GCP desde archivo del repo
       - name: Configurar credenciales GCP
         run: |
-          printf '%s' "${{ secrets.GCP_SA_KEY }}" > $HOME/gcp-key.json
+          cp Key.json $HOME/gcp-key.json
+          cat gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp-key.json" >> $GITHUB_ENV
-
 
       # 2. Instalar CloudFox
       - name: Instalar Cloudfox
