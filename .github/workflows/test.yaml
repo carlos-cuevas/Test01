@@ -19,7 +19,7 @@ jobs:
       - name: Configurar credenciales GCP
         run: |
           echo "${{ secrets.GCP_SA_KEY }}" > $HOME/gcp-key.json
-          echo $HOME/gcp-key.json
+          cat $HOME/gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp-key.json" >> $GITHUB_ENV
 
       # 2. Instalar CloudFox
