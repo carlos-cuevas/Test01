@@ -32,10 +32,12 @@ jobs:
           unzip cloudfox-linux-amd64.zip
 
       - name: Ejecutar Cloudfox (GCP)
+        env:
+          GCP_PROJECT_ID: infra-odyssey-331604
         run: |
           cd cloudfox
           chmod +x cloudfox
-          ./cloudfox gcp whoami --outdir ${{ github.workspace }}/cspm/
+          ./cloudfox gcp whoami --project $GCP_PROJECT_ID --outdir ${{ github.workspace }}/cspm/
         continue-on-error: true
 
       - name: Publicar artefactos
@@ -43,4 +45,3 @@ jobs:
         with:
           name: cloudfox-gcp
           path: cspm
-
