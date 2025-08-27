@@ -1,4 +1,4 @@
-name: ScoutSuite - CloudFox GCP
+name: CloudFox GCP
 
 on:
   workflow_dispatch:
@@ -6,61 +6,31 @@ on:
     branches: [ main ]
 
 permissions:
-  id-token: write
   contents: read
-  packages: write
 
 jobs:
-  scoutsuite-gcp:
+  cloudfox-gcp:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Auth GCP (OIDC)
-        id: gcp-auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: projects/534686086869/locations/global/workloadIdentityPools/testpool-0003/providers/github-provider
-          service_account: quickassessment@infra-odyssey-331604.iam.gserviceaccount.com
-          create_credentials_file: true
-
-      - name: Ejecutar ScoutSuite (GCP)
-        env:
-          GCP_PROJECT_ID: infra-odyssey-331604
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-        run: |
-          mkdir -p cspm
-          pip3 install scoutsuite jq
-          scout gcp -s "$GOOGLE_APPLICATION_CREDENTIALS" --project-id "$GCP_PROJECT_ID" \
-            --no-browser --report-dir './cspm/' --report-name 'sci-cloud' --result-format json
-          tail ./cspm/scoutsuite-results/scoutsuite_results_sci-cloud.js -n +2 | jq '.' \
-            > ./cspm/scoutsuite_results_sci-cloud.json
-        continue-on-error: true
-
+      # --- Instalación de CloudFox ---
       - name: Instalar Cloudfox
         run: |
           sudo apt-get update -y
           wget -q --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
           unzip -q cloudfox-linux-amd64.zip
 
-      - name: Instalar gcloud
-        uses: google-github-actions/setup-gcloud@v2
-      
-      - name: Crear ADC impersonado
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-        run: |
-          gcloud auth application-default print-json \
-            --impersonate-service-account=quickassessment@infra-odyssey-331604.iam.gserviceaccount.com \
-            > $RUNNER_TEMP/adc.json
-          echo "ADC_JSON_PATH=$RUNNER_TEMP/adc.json" >> $GITHUB_ENV
-          
+      # --- Ejecución de CloudFox con SA Key (secreto en GitHub) ---
       - name: Ejecutar Cloudfox (GCP)
         env:
           GCP_PROJECT_ID: infra-odyssey-331604
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.ADC_JSON_PATH }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: |
+          # Crear archivo JSON desde el secreto guardado en GitHub
+          echo '${{ secrets.GCP_SA_KEY_JSON }}' > "$GOOGLE_APPLICATION_CREDENTIALS"
+
+          # Entrar al directorio y ejecutar el binario
           cd cloudfox
           chmod +x cloudfox
           ./cloudfox gcp whoami --project "$GCP_PROJECT_ID"
@@ -68,8 +38,9 @@ jobs:
             --outdir "${{ github.workspace }}/cspm/"
         continue-on-error: true
 
+      # --- Publicación de artefactos ---
       - name: Publicar artefactos
         uses: actions/upload-artifact@v4
         with:
-          name: scoutsuite-gcp
+          name: cloudfox-gcp
           path: cspm
