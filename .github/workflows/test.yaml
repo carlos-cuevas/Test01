@@ -46,16 +46,16 @@ jobs:
 
       - name: Instalar gcloud
         uses: google-github-actions/setup-gcloud@v2
-
+      
       - name: Crear ADC impersonado
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
         run: |
-          gcloud auth application-default set-quota-project infra-odyssey-331604
-          gcloud auth application-default print-access-token > /dev/null
-          gcloud auth application-default print-json > $RUNNER_TEMP/adc.json
+          gcloud auth application-default print-json \
+            --impersonate-service-account=quickassessment@infra-odyssey-331604.iam.gserviceaccount.com \
+            > $RUNNER_TEMP/adc.json
           echo "ADC_JSON_PATH=$RUNNER_TEMP/adc.json" >> $GITHUB_ENV
-
+          
       - name: Ejecutar Cloudfox (GCP)
         env:
           GCP_PROJECT_ID: infra-odyssey-331604
