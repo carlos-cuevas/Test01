@@ -2,12 +2,9 @@ name: CloudFox GCP
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
-  id-token: write   # necesario para OIDC
+  id-token: write
   contents: read
 
 jobs:
@@ -16,26 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Autenticación en GCP con OIDC
+      # 1. Autenticación OIDC en GCP
       - name: Auth GCP (OIDC)
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/534686086869/locations/global/workloadIdentityPools/testpool-0003/providers/github-provider
           service_account: quickassessment@infra-odyssey-331604.iam.gserviceaccount.com
+          token_format: json
           create_credentials_file: true
-          export_environment_variables: true
-
-      - name: Debug ADC file
-        run: |
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS"
-          ls -l $GOOGLE_APPLICATION_CREDENTIALS
-          cat $GOOGLE_APPLICATION_CREDENTIALS | head -20
 
       # 2. Instalar CloudFox
       - name: Instalar Cloudfox
-        env:
-          GCP_PROJECT_ID: infra-odyssey-331604
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           sudo apt update
           wget --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
@@ -45,16 +33,9 @@ jobs:
       - name: Ejecutar Cloudfox (GCP)
         env:
           GCP_PROJECT_ID: infra-odyssey-331604
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           mkdir -p cspm
           cd cloudfox
           chmod +x cloudfox
           ./cloudfox gcp whoami --project $GCP_PROJECT_ID --outdir ${{ github.workspace }}/cspm/
-
-      # 4. Publicar resultados
-      - name: Publicar artefactos
-        uses: actions/upload-artifact@v4
-        with:
-          name: cloudfox-gcp
-          path: cspm
-
