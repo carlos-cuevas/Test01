@@ -43,14 +43,14 @@ jobs:
           sudo apt-get update -y
           wget -q --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
           unzip -q cloudfox-linux-amd64.zip
-          chmod +x cloudfox
-
       - name: Ejecutar Cloudfox (GCP)
         env:
           GCP_PROJECT_ID: infra-odyssey-331604
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
           CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
         run: |
+          cd cloudfox
+          chmod +x cloudfox
           ./cloudfox gcp whoami --project "$GCP_PROJECT_ID"
           ./cloudfox gcp all-checks --project "$GCP_PROJECT_ID" \
             --outdir "${{ github.workspace }}/cspm/"
