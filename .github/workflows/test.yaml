@@ -3,10 +3,13 @@ name: CloudFox GCP
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
+  id-token: write
   contents: read
+  packages: write
 
 jobs:
   cloudfox-gcp:
@@ -14,31 +17,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- Instalación de CloudFox ---
+      - name: Auth GCP (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/534686086869/locations/global/workloadIdentityPools/scitum-infra-odyssey-331604/providers/github
+          service_account: ScitumAssessment@infra-odyssey-331604.iam.gserviceaccount.com
+          create_credentials_file: true
+          export_environment_variables: true
+
       - name: Instalar Cloudfox
         run: |
-          sudo apt-get update -y
-          wget -q --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
-          unzip -q cloudfox-linux-amd64.zip
+          sudo apt update
+          wget --retry-connrefused --tries=20 https://github.com/BishopFox/cloudfox/releases/download/v1.15.0/cloudfox-linux-amd64.zip
+          unzip cloudfox-linux-amd64.zip
 
-      # --- Ejecución de CloudFox con SA Key (secreto en GitHub) ---
       - name: Ejecutar Cloudfox (GCP)
-        env:
-          GCP_PROJECT_ID: infra-odyssey-331604
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: |
-          # Crear archivo JSON desde el secreto guardado en GitHub
-          echo '${{ secrets.GCP_SA_KEY_JSON }}' > "$GOOGLE_APPLICATION_CREDENTIALS"
-
-          # Entrar al directorio y ejecutar el binario
           cd cloudfox
           chmod +x cloudfox
-          ./cloudfox gcp whoami --project "$GCP_PROJECT_ID"
-          ./cloudfox gcp all-checks --project "$GCP_PROJECT_ID" \
-            --outdir "${{ github.workspace }}/cspm/"
+          ./cloudfox gcp whoami --outdir ${{ github.workspace }}/cspm/
         continue-on-error: true
 
-      # --- Publicación de artefactos ---
       - name: Publicar artefactos
         uses: actions/upload-artifact@v4
         with:
